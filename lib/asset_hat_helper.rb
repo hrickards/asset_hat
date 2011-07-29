@@ -49,7 +49,7 @@ module AssetHatHelper
     # Build `sources`, adding extensions if needed, using minified file if it
     # already exists
     filenames.each do |filename|
-      if filename.match(/\.#{type}$/)
+      if filename.match(/\.#{type}$/) or options[:append_type] == false
         sources << filename
       else
         min_filename_with_ext = "#{filename}.min.#{type}"
@@ -382,7 +382,7 @@ module AssetHatHelper
     src = AssetHat::JS::Vendors.source_for(
           arg, options.slice(:ssl, :version))
     include_assets(:js, src,
-          include_assets_options.merge(:cache => true).
+          include_assets_options.merge(:cache => true, :append_type => false).
                 except(:bundle, :bundles))
   end
 end
