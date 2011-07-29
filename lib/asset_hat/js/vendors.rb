@@ -71,49 +71,54 @@ module AssetHat
         use_ssl   = !!options[:ssl]
         version   = options[:version] || vendor_config['version'] rescue nil
 
-        # Prepare local path and default remote URL
-        srcs = Vendors.vendor_uris(vendor,
-          :use_ssl => use_ssl, :version => version)
-        local_src, remote_src = srcs[:local], srcs[:remote]
-
-        # Using the local URL requires that the vendor file exists locally. If
-        # the vendor file doesn't exist, use the remote URL as fallback.
-        use_local &&= AssetHat.asset_exists?(local_src, :js)
-
-        # If no version given, can't determine the remote URL; use the local
-        # URL as fallback.
-        use_local ||= version.blank?
-
-        if use_local
-          src = local_src
+        # If a remote URL has been specified, use it
+        if vendor_config["remote_url"]
+          src = vendor_config["remote_url"]
         else
-          # To ease setup, if no local copy of the vendor code is found,
-          # use a remote URL as a fallback.
 
-          # Give precedence to configured remote URLs
-          src   = vendor_config.try(:[], 'remote_ssl_url') if use_ssl
-          src ||= vendor_config.try(:[], 'remote_url')
+          # Prepare local path and default remote URL
+          srcs = Vendors.vendor_uris(vendor,
+            :use_ssl => use_ssl, :version => version)
+          local_src, remote_src = srcs[:local], srcs[:remote]
 
-          # Use default remote URL as fallback
-          src ||= remote_src
+          # Using the local URL requires that the vendor file exists locally. If
+          # the vendor file doesn't exist, use the remote URL as fallback.
+          use_local &&= AssetHat.asset_exists?(local_src, :js)
 
-          # Use local URL as final resort, even though the file doesn't
-          # exist, in hopes that the app maintainer finds the 404 (or the
-          # warning below) in the logs. This needs to be fixed in the app,
-          # rather than relying on a CDN to dynamically provide the latest
-          # stable vendor version.
-          if src.blank?
+          # If no version given, can't determine the remote URL; use the local
+          # URL as fallback.
+          use_local ||= version.blank?
+
+          if use_local
             src = local_src
-            Rails.logger.warn "\n\nAssetHat WARNING (#{Time.now}):\n" + %{
-              Tried to reference the vendor JS `:#{vendor}`, but
-              #{AssetHat.assets_dir(:js)}/#{local_src} couldn't be found, and
-              couldn't use a remote fallback because no vendor version was
-              given in #{AssetHat::RELATIVE_CONFIG_FILEPATH}.
-            }.squish!
-              # TODO: Create `AssetHat::Logger.warn`, etc. methods
+          else
+            # To ease setup, if no local copy of the vendor code is found,
+            # use a remote URL as a fallback.
+  
+            # Give precedence to configured remote URLs
+            src   = vendor_config.try(:[], 'remote_ssl_url') if use_ssl
+            src ||= vendor_config.try(:[], 'remote_url')
+  
+            # Use default remote URL as fallback
+            src ||= remote_src
+  
+            # Use local URL as final resort, even though the file doesn't
+            # exist, in hopes that the app maintainer finds the 404 (or the
+            # warning below) in the logs. This needs to be fixed in the app,
+            # rather than relying on a CDN to dynamically provide the latest
+            # stable vendor version.
+            if src.blank?
+              src = local_src
+              Rails.logger.warn "\n\nAssetHat WARNING (#{Time.now}):\n" + %{
+                Tried to reference the vendor JS `:#{vendor}`, but
+                #{AssetHat.assets_dir(:js)}/#{local_src} couldn't be found, and
+                couldn't use a remote fallback because no vendor version was
+                given in #{AssetHat::RELATIVE_CONFIG_FILEPATH}.
+              }.squish!
+                # TODO: Create `AssetHat::Logger.warn`, etc. methods
+            end
           end
-        end
-
+        end  
         src
       end
 

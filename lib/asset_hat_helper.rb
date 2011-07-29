@@ -320,12 +320,15 @@ module AssetHatHelper
       # Add HTML inclusions for vendors
       included_vendors.each do |vendor|
         args.delete vendor
-        src = AssetHat::JS::Vendors.source_for(
-                vendor, options.slice(:ssl, :version))
-        htmls << include_assets(:js, src,
-                  include_assets_options.merge(:cache => true).
-                                         except(:bundle, :bundles))
+        htmls << vendor_src(vendor, options, include_assets_options)
       end
+
+      # Add HTML inclusions for custom vendors
+      if options[:vendor] == true
+        args.each do |arg|
+          args.delete arg
+          htmls << vendor_src(arg, options, include_assets_option)
+        end
 
       # Get non-vendor HTML/URLs
       htmls << include_assets(:js, *(args + [include_assets_options]))
@@ -373,5 +376,13 @@ module AssetHatHelper
       raise %{Unknown type "#{type}"; should be one of: #{TYPES.join(', ')}.}
     end
   end
-
+  
+  # Returns the source code for a vendor file
+  def vendor_src(arg, options, include_assets_options)
+    src = AssetHat::JS::Vendors.source_for(
+          arg, options.slice(:ssl, :version))
+    include_assets(:js, src,
+          include_assets_options.merge(:cache => true).
+                except(:bundle, :bundles))
+  end
 end
